@@ -1,2 +1,2 @@
 compile: main.c
-	$(CC) main.c -o out -Wall -Wextra -pedantic
+	$(CC) editor.c -o out -Wall -Wextra -pedantic
