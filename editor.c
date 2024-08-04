@@ -43,7 +43,7 @@ int main(){
 		read(STDIN_FILENO, &c, 1);
 		if (c=='q')
 			break;
-		else if (iscntrl(c))
+		else if (iscntrl(c)) // iscntrl defined in ctype.h
 			printf("%d\r\n", c);
 		else
 			printf("%d (%c)\r\n", c, c); // \n for the letter to be displayed(\n = <ENTER>)
