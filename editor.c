@@ -2,7 +2,17 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <errno.h>
 #include <termios.h> // For reading terminal attributes
+
+/* error handling */
+
+void raise_error(const char* error_str){
+	perror(error_str);
+	exit(1);
+}
+
+/* terminal */
 
 struct termios original_terminal;
 
@@ -12,7 +22,9 @@ void disableRawMode() {
 void enableRawMode() {
 	// In raw mode, we see no characters on stdout
 	// Ex: when writing `sudo ...` we don't see the output(the characters)
-	tcgetattr(STDIN_FILENO, &original_terminal);
+	if (tcgetattr(STDIN_FILENO, &original_terminal) == -1)
+		raise_error("tcgetattr");
+
 	atexit(disableRawMode);
 
 	struct termios tty = original_terminal;
@@ -33,20 +45,26 @@ void enableRawMode() {
 	// Turning OPOST off disables the transformation \n -> \r\n
 	tty.c_oflag &= ~(OPOST);
 
-	tcsetattr(STDIN_FILENO, TCSAFLUSH, &tty);
+	tty.c_cc[VMIN] = 0;
+	tty.c_cc[VTIME] = 10;
+	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &tty) == -1){
+		raise_error("tcsetattr");
+	}
 }
 
 int main(){
 	enableRawMode();
-	char c;
+	char c='\0';
 	while (1) {
-		read(STDIN_FILENO, &c, 1);
+		if (read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN)
+			raise_error("read");
+
 		if (c=='q')
 			break;
 		else if (iscntrl(c)) // iscntrl defined in ctype.h
 			printf("%d\r\n", c);
 		else
-			printf("%d (%c)\r\n", c, c); // \n for the letter to be displayed(\n = <ENTER>)
+			printf("%d (%c)\r\n", c, c);
 	}
 	return 0;
 }
