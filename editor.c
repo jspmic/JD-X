@@ -1,33 +1,57 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
+#include <errno.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/ioctl.h>
 #include <termios.h> // For reading terminal attributes
+#include "functions.h"
+
+#define CTRL_KEY(x) (x & 0x1f)
 
 /* error handling */
 
 void raise_error(const char* error_str){
 	perror(error_str);
+	refresh_screen();
 	exit(1);
 }
 
 /* terminal */
 
-struct termios original_terminal;
-
-void disableRawMode() {
-	tcsetattr(STDIN_FILENO, TCSAFLUSH, &original_terminal);
+int getWindowSize(int *rows, int *cols){
+	struct winsize ws;
+	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
+		return -1;
+	}
+	*cols = ws.ws_col;
+	*rows  = ws.ws_row;
+	return 0;
 }
-void enableRawMode() {
+
+struct termConfig {
+	struct termios original_terminal;
+	int rows;
+	int cols;
+} termConfig;
+
+void initEditor(void){
+	if (getWindowSize(&(termConfig.rows), &(termConfig.cols)) == -1)
+			raise_error("getWindowSize");
+}
+
+void disableRawMode(void) {
+	tcsetattr(STDIN_FILENO, TCSAFLUSH, &(termConfig.original_terminal));
+}
+void enableRawMode(void) {
 	// In raw mode, we see no characters on stdout
 	// Ex: when writing `sudo ...` we don't see the output(the characters)
-	if (tcgetattr(STDIN_FILENO, &original_terminal) == -1)
+	if (tcgetattr(STDIN_FILENO, &(termConfig.original_terminal)) == -1)
 		raise_error("tcgetattr");
 
 	atexit(disableRawMode);
 
-	struct termios tty = original_terminal;
+	struct termios tty = termConfig.original_terminal;
 
 	// Turning off IXON flag shuts down the C-s(to not send the output on screen) and C-q(to resend the output)
 	// Turning off ICRNL flag disables the feature where carriage returns are transformed into new line(\r -> \n); (\n, 10)
@@ -52,19 +76,55 @@ void enableRawMode() {
 	}
 }
 
-int main(){
-	enableRawMode();
-	char c='\0';
-	while (1) {
-		if (read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN)
+char keypress_read(void){
+	char c;
+	int actual_character;
+	while ((actual_character = read(STDIN_FILENO, &c, 1)) != 1){
+		if (actual_character == -1 && errno != EAGAIN)
 			raise_error("read");
+	}
+	return c;
+}
 
-		if (c=='q')
+/* Key press handling */
+
+void editorProcessKeypress(void) {
+	char c = keypress_read();
+	switch (c){
+		case CTRL_KEY('q'):
+			refresh_screen();
+			exit(0);
 			break;
-		else if (iscntrl(c)) // iscntrl defined in ctype.h
-			printf("%d\r\n", c);
-		else
-			printf("%d (%c)\r\n", c, c);
+	}
+}
+
+/* Output */
+
+void refresh_screen(void){
+	// Clears the screen
+	write(STDOUT_FILENO, "\x1b[2J", 4);
+	write(STDOUT_FILENO, "\x1b[H", 3); // Reposition the cursor to top-left
+	draw_rows();
+	write(STDOUT_FILENO, "\x1b[H", 3);
+}
+
+void draw_rows(void){
+	int y, rows = termConfig.rows;
+	for (y=0; y < rows; y++){
+		write(STDOUT_FILENO, "*", 1);
+		if (y < (rows-1))
+			write(STDOUT_FILENO, "\r\n", 2);
+	}
+}
+
+/* Main function */
+
+int main(void){
+	enableRawMode();
+	initEditor();
+	while (1){
+		refresh_screen();
+		editorProcessKeypress();
 	}
 	return 0;
 }
