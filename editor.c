@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <string.h>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/ioctl.h>
@@ -8,6 +9,9 @@
 #include "functions.h"
 
 #define CTRL_KEY(x) (x & 0x1f)
+#define ABUF_INIT {NULL, 0}
+#define VERSION "1.0"
+#define WELCOME_LEN 100
 
 /* error handling */
 
@@ -31,14 +35,18 @@ int getWindowSize(int *rows, int *cols){
 	return 0;
 }
 
-// Global Variable to store the terminal attributes and size
+// Global Variable to store the terminal configuration
 struct termConfig {
 	struct termios original_terminal;
-	int rows;
-	int cols;
+	int rows; // Terminal rows
+	int cols; // Terminal columns
+	int cursor_x;
+	int cursor_y;
 } termConfig;
 
 void initEditor(void){
+	termConfig.cursor_x = 0;
+	termConfig.cursor_y = 0;
 	// Initialize the script with the correct terminal size
 	if (getWindowSize(&(termConfig.rows), &(termConfig.cols)) == -1)
 			raise_error("getWindowSize");
@@ -95,6 +103,27 @@ char keypress_read(void){
 
 /* Key press handling */
 
+void editorMoveCursor(char key){
+	switch (key){
+		case 'h':
+			if (termConfig.cursor_x > 0)
+				termConfig.cursor_x--;
+			break;
+		case 'j':
+			if (termConfig.cursor_y < termConfig.rows-1)
+				termConfig.cursor_y++;
+			break;
+		case 'k':
+			if (termConfig.cursor_y > 0)
+				termConfig.cursor_y--;
+			break;
+		case 'l':
+			if (termConfig.cursor_x < termConfig.cols-1)
+				termConfig.cursor_x++;
+			break;
+	}
+}
+
 void editorProcessKeypress(void) {
 	char c = keypress_read();
 	switch (c){
@@ -102,28 +131,76 @@ void editorProcessKeypress(void) {
 			refresh_screen();
 			exit(0);
 			break;
+		case 'h':
+		case 'j':
+		case 'k':
+		case 'l':
+			editorMoveCursor(c);
+			break;
 	}
+}
+
+/* Append Buffer */
+
+void buffer_append(buffer *buf, const char* content, int len){
+	char *new = realloc(buf->buf, buf->len+len);
+	if (new == NULL)
+		return;
+	memcpy(&new[buf->len], content, len);
+	buf->buf = new;
+	buf->len+=len;
+}
+
+void free_buffer(buffer *buf){
+	free(buf->buf);
+	buf->len = 0;
 }
 
 /* Output */
 
-void draw_rows(void){
+void draw_rows(buffer *buf){
 	// Draw the vim-style stars
-	int y, rows = termConfig.rows;
+	int y, rows = termConfig.rows, cols=termConfig.cols;
 	for (y=0; y < rows; y++){
-		write(STDOUT_FILENO, "*", 1);
+		if (y == rows/2){
+			char welcome[WELCOME_LEN];
+			int welcome_len = snprintf(welcome, sizeof(welcome), "\x1b[%d;%dH JD-X Editor -- version %s\r\n",rows/2, cols/3, VERSION);
+		// 2nd way of centering the welcome message
+		/* int padding = (cols - welcome_len) / 2; */
+		/* if (padding) { */
+		/* 	buffer_append(buf, "~", 1); */
+		/* 	padding--; */
+		/* } */
+		/* while (padding--) buffer_append(buf, " ", 1); */
+		if (welcome_len > cols)
+			welcome_len = cols;
+		buffer_append(buf, welcome, welcome_len);
+		}
+		buffer_append(buf, "~", 1);
+		buffer_append(buf, "\x1b[K", 3); // Clears one line on each call
 		if (y < (rows-1))
-			write(STDOUT_FILENO, "\r\n", 2);
+			buffer_append(buf, "\r\n", 2);
 	}
 }
 
 void refresh_screen(void){
 	// Clears the screen
-	write(STDOUT_FILENO, "\x1b[2J", 4); // Clears all characters in the terminal
-	write(STDOUT_FILENO, "\x1b[H", 3); // Reposition the cursor to top-left
-	draw_rows();
-	write(STDOUT_FILENO, "\x1b[H", 3);
+	buffer buf = ABUF_INIT;
+	buffer_append(&buf, "\x1b[?25l", 6); // Hides the cursor
+	/* buffer_append(&buf, "\x1b[2J", 4); // Clears all characters in the terminal */
+	buffer_append(&buf, "\x1b[H", 3); // Reposition the cursor to the top-left
+	draw_rows(&buf);
+	
+	char buffer[32];
+	snprintf(buffer, sizeof(buffer), "\x1b[%d;%dH", termConfig.cursor_y + 1, termConfig.cursor_x + 1); // String to reposition the cursor to the top-left
+	buffer_append(&buf, buffer, strlen(buffer));
+	/* buffer_append(&buf, "\x1b[H", 3); */
+
+	buffer_append(&buf, "\x1b[?25h", 6); // Shows the cursor
+	write(STDOUT_FILENO, buf.buf, buf.len);
+	free_buffer(&buf);
 }
+
 
 /* Main function */
 
