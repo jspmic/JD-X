@@ -12,6 +12,7 @@
 /* error handling */
 
 void raise_error(const char* error_str){
+	// Function that raises an error once called
 	perror(error_str);
 	refresh_screen();
 	exit(1);
@@ -20,6 +21,7 @@ void raise_error(const char* error_str){
 /* terminal */
 
 int getWindowSize(int *rows, int *cols){
+	// Calculates the window size of the terminal
 	struct winsize ws;
 	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
 		return -1;
@@ -29,6 +31,7 @@ int getWindowSize(int *rows, int *cols){
 	return 0;
 }
 
+// Global Variable to store the terminal attributes and size
 struct termConfig {
 	struct termios original_terminal;
 	int rows;
@@ -36,17 +39,21 @@ struct termConfig {
 } termConfig;
 
 void initEditor(void){
+	// Initialize the script with the correct terminal size
 	if (getWindowSize(&(termConfig.rows), &(termConfig.cols)) == -1)
 			raise_error("getWindowSize");
 }
 
 void disableRawMode(void) {
+	// Switch to canonical mode
 	tcsetattr(STDIN_FILENO, TCSAFLUSH, &(termConfig.original_terminal));
 }
 void enableRawMode(void) {
+	// Switch to RAW mode
+
 	// In raw mode, we see no characters on stdout
 	// Ex: when writing `sudo ...` we don't see the output(the characters)
-	if (tcgetattr(STDIN_FILENO, &(termConfig.original_terminal)) == -1)
+	if (tcgetattr(STDIN_FILENO, &(termConfig.original_terminal)) == -1) // Store terminal attributes
 		raise_error("tcgetattr");
 
 	atexit(disableRawMode);
@@ -70,7 +77,7 @@ void enableRawMode(void) {
 	tty.c_oflag &= ~(OPOST);
 
 	tty.c_cc[VMIN] = 0;
-	tty.c_cc[VTIME] = 10;
+	tty.c_cc[VTIME] = 1;
 	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &tty) == -1){
 		raise_error("tcsetattr");
 	}
@@ -100,21 +107,22 @@ void editorProcessKeypress(void) {
 
 /* Output */
 
-void refresh_screen(void){
-	// Clears the screen
-	write(STDOUT_FILENO, "\x1b[2J", 4);
-	write(STDOUT_FILENO, "\x1b[H", 3); // Reposition the cursor to top-left
-	draw_rows();
-	write(STDOUT_FILENO, "\x1b[H", 3);
-}
-
 void draw_rows(void){
+	// Draw the vim-style stars
 	int y, rows = termConfig.rows;
 	for (y=0; y < rows; y++){
 		write(STDOUT_FILENO, "*", 1);
 		if (y < (rows-1))
 			write(STDOUT_FILENO, "\r\n", 2);
 	}
+}
+
+void refresh_screen(void){
+	// Clears the screen
+	write(STDOUT_FILENO, "\x1b[2J", 4); // Clears all characters in the terminal
+	write(STDOUT_FILENO, "\x1b[H", 3); // Reposition the cursor to top-left
+	draw_rows();
+	write(STDOUT_FILENO, "\x1b[H", 3);
 }
 
 /* Main function */
