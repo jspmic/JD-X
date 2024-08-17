@@ -140,9 +140,10 @@ void editorProcessKeypress(void) {
 	}
 }
 
-/* Append Buffer */
+/* Append String to Buffer */
 
 void buffer_append(buffer *buf, const char* content, int len){
+	// Append the content to the end of the buffer
 	char *new = realloc(buf->buf, buf->len+len);
 	if (new == NULL)
 		return;
@@ -159,22 +160,23 @@ void free_buffer(buffer *buf){
 /* Output */
 
 void draw_rows(buffer *buf){
-	// Draw the vim-style stars
+	// Draw the vim-style tilds
+
 	int y, rows = termConfig.rows, cols=termConfig.cols;
 	for (y=0; y < rows; y++){
 		if (y == rows/2){
+			// Places welcome message at the center of the screen
 			char welcome[WELCOME_LEN];
-			int welcome_len = snprintf(welcome, sizeof(welcome), "\x1b[%d;%dH JD-X Editor -- version %s\r\n",rows/2, cols/3, VERSION);
-		// 2nd way of centering the welcome message
-		/* int padding = (cols - welcome_len) / 2; */
-		/* if (padding) { */
-		/* 	buffer_append(buf, "~", 1); */
-		/* 	padding--; */
-		/* } */
-		/* while (padding--) buffer_append(buf, " ", 1); */
-		if (welcome_len > cols)
-			welcome_len = cols;
-		buffer_append(buf, welcome, welcome_len);
+			int welcome_len = snprintf(welcome, sizeof(welcome), "JD-X Editor -- version %s\r\n", VERSION);
+			int padding = (cols - welcome_len) / 2;
+			if (padding) {
+				buffer_append(buf, "~", 1);
+				padding--;
+			}
+			while (padding--) buffer_append(buf, " ", 1);
+			if (welcome_len > cols)
+				welcome_len = cols;
+			buffer_append(buf, welcome, welcome_len);
 		}
 		buffer_append(buf, "~", 1);
 		buffer_append(buf, "\x1b[K", 3); // Clears one line on each call
@@ -185,19 +187,21 @@ void draw_rows(buffer *buf){
 
 void refresh_screen(void){
 	// Clears the screen
+
 	buffer buf = ABUF_INIT;
 	buffer_append(&buf, "\x1b[?25l", 6); // Hides the cursor
-	/* buffer_append(&buf, "\x1b[2J", 4); // Clears all characters in the terminal */
+
 	buffer_append(&buf, "\x1b[H", 3); // Reposition the cursor to the top-left
 	draw_rows(&buf);
 	
 	char buffer[32];
-	snprintf(buffer, sizeof(buffer), "\x1b[%d;%dH", termConfig.cursor_y + 1, termConfig.cursor_x + 1); // String to reposition the cursor to the top-left
+	// String to reposition the cursor to the top-left
+	snprintf(buffer, sizeof(buffer), "\x1b[%d;%dH", termConfig.cursor_y + 1, termConfig.cursor_x + 1);
 	buffer_append(&buf, buffer, strlen(buffer));
 	/* buffer_append(&buf, "\x1b[H", 3); */
 
 	buffer_append(&buf, "\x1b[?25h", 6); // Shows the cursor
-	write(STDOUT_FILENO, buf.buf, buf.len);
+	write(STDOUT_FILENO, buf.buf, buf.len); // Writes all the changes to the buffer
 	free_buffer(&buf);
 }
 
