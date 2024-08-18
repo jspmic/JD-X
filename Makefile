@@ -1,5 +1,10 @@
-compile: editor.c
-	$(CC) editor.c -lm -o a.o -Wall -Wextra -pedantic
+SCR = editor.c
+OBJ = a.o
+CFLAGS = -Wall -Wextra -pedantic -lm
+BIN = editor
+
+$(BIN): $(SCR)
+	$(CC) $(CFLAGS) $(SCR) -o $(OBJ)
 
 clean:
-	rm -f a.o
+	rm -f $(OBJ)
