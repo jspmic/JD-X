@@ -98,7 +98,31 @@ char keypress_read(void){
 		if (actual_character == -1 && errno != EAGAIN)
 			raise_error("read");
 	}
-	return c;
+
+	if (c == '\x1b'){
+		char seq[3];
+		if (read(STDIN_FILENO, &seq[0], 1) != 1)
+			return '\x1b';
+		if (read(STDIN_FILENO, &seq[1], 1) != 1)
+			return '\x1b';
+
+		if (seq[0] == '['){
+			switch (seq[1]){
+				case 'A':
+					return 'k';
+				case 'B':
+					return 'j';
+				case 'C':
+					return 'l';
+				case 'D':
+					return 'h';
+			}
+		}
+		return '\x1b';
+	}
+	else {
+		return c;
+	}
 }
 
 /* Key press handling */
