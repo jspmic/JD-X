@@ -112,25 +112,31 @@ int keypress_read(void){
 				return '\x1b';
 
 			if (seq[0] == '['){
-				switch (seq[1]){
-					case 'A':
-						return ARROW_UP;
-					case 'B':
-						return ARROW_DOWN;
-					case 'C':
-						return ARROW_RIGHT;
-					case 'D':
-						return ARROW_LEFT;
+				if (seq[1] >= '0' && seq[1] <= '9') {
+					if (read(STDIN_FILENO, &seq[2], 1) != 1)
+						return '\x1b';
+					if (seq[2] == '~'){
+						switch (seq[1]){
+							case '3':
+								return DELETE;
+							case '5':
+								return PG_UP;
+							case '6':
+								return PG_DOWN;
+						};
+					}
 				}
-				if (read(STDIN_FILENO, &seq[2], 1) != 1)
-					return '\x1b';
-				if (seq[2] == '~'){
+				else {
 					switch (seq[1]){
-						case '5':
-							break;
-						case '6':
-							break;
-					};
+						case 'A':
+							return ARROW_UP;
+						case 'B':
+							return ARROW_DOWN;
+						case 'C':
+							return ARROW_RIGHT;
+						case 'D':
+							return ARROW_LEFT;
+					}
 				}
 			}
 			return '\x1b'; // Assuming everything else is an ESC char
@@ -163,6 +169,7 @@ void editorMoveCursor(int key){
 
 void editorProcessKeypress(void) {
 	int c = keypress_read();
+	int times;
 	switch (c){
 		case CTRL_KEY('q'):
 			refresh_screen();
@@ -174,6 +181,11 @@ void editorProcessKeypress(void) {
 		case ARROW_RIGHT:
 			editorMoveCursor(c);
 			break;
+		case PG_UP:
+		case PG_DOWN:
+			times = termConfig.rows;
+			while (times--)
+				editorMoveCursor(c == PG_UP ? ARROW_UP : ARROW_DOWN);
 	}
 }
 

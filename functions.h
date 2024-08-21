@@ -11,6 +11,7 @@ enum editor_keys{
 	ARROW_RIGHT,
 	ARROW_UP,
 	ARROW_DOWN,
+	DELETE,
 	PG_UP,
 	PG_DOWN
 };
