@@ -8,11 +8,6 @@
 #include <termios.h> // For reading terminal attributes
 #include "functions.h"
 
-#define CTRL_KEY(x) (x & 0x1f)
-#define ABUF_INIT {NULL, 0}
-#define VERSION "1.0"
-#define WELCOME_LEN 100
-
 /* error handling */
 
 void raise_error(const char* error_str){
@@ -93,9 +88,9 @@ void enableRawMode(void) {
 
 char keypress_read(void){
 	char c;
-	int actual_character;
-	while ((actual_character = read(STDIN_FILENO, &c, 1)) != 1){
-		if (actual_character == -1 && errno != EAGAIN)
+	int nread;
+	while ((nread = read(STDIN_FILENO, &c, 1)) != 1){
+		if (nread == -1 && errno != EAGAIN)
 			raise_error("read");
 	}
 
@@ -118,7 +113,7 @@ char keypress_read(void){
 					return 'h';
 			}
 		}
-		return '\x1b';
+		return '\x1b'; // Assuming everything else is an ESC char
 	}
 	else {
 		return c;
@@ -130,19 +125,19 @@ char keypress_read(void){
 void editorMoveCursor(char key){
 	switch (key){
 		case 'h':
-			if (termConfig.cursor_x > 0)
+			if (termConfig.cursor_x != 0)
 				termConfig.cursor_x--;
 			break;
 		case 'j':
-			if (termConfig.cursor_y < termConfig.rows-1)
+			if (termConfig.cursor_y != termConfig.rows-1)
 				termConfig.cursor_y++;
 			break;
 		case 'k':
-			if (termConfig.cursor_y > 0)
+			if (termConfig.cursor_y != 0)
 				termConfig.cursor_y--;
 			break;
 		case 'l':
-			if (termConfig.cursor_x < termConfig.cols-1)
+			if (termConfig.cursor_x != termConfig.cols-1)
 				termConfig.cursor_x++;
 			break;
 	}
