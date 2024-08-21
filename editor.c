@@ -86,7 +86,7 @@ void enableRawMode(void) {
 	}
 }
 
-char keypress_read(void){
+int keypress_read(void){
 	char c;
 	int nread;
 	while ((nread = read(STDIN_FILENO, &c, 1)) != 1){
@@ -104,14 +104,16 @@ char keypress_read(void){
 		if (seq[0] == '['){
 			switch (seq[1]){
 				case 'A':
-					return 'k';
+					return UP_MAP;
 				case 'B':
-					return 'j';
+					return DOWN_MAP;
 				case 'C':
-					return 'l';
+					return RIGHT_MAP;
 				case 'D':
-					return 'h';
+					return LEFT_MAP;
 			}
+		if (read(STDIN_FILENO, &seq[2], 1) != 1)
+			return '\x1b';
 		}
 		return '\x1b'; // Assuming everything else is an ESC char
 	}
@@ -122,21 +124,21 @@ char keypress_read(void){
 
 /* Key press handling */
 
-void editorMoveCursor(char key){
+void editorMoveCursor(int key){
 	switch (key){
-		case 'h':
+		case ARROW_LEFT:
 			if (termConfig.cursor_x != 0)
 				termConfig.cursor_x--;
 			break;
-		case 'j':
+		case ARROW_DOWN:
 			if (termConfig.cursor_y != termConfig.rows-1)
 				termConfig.cursor_y++;
 			break;
-		case 'k':
+		case ARROW_UP:
 			if (termConfig.cursor_y != 0)
 				termConfig.cursor_y--;
 			break;
-		case 'l':
+		case ARROW_RIGHT:
 			if (termConfig.cursor_x != termConfig.cols-1)
 				termConfig.cursor_x++;
 			break;
@@ -144,17 +146,23 @@ void editorMoveCursor(char key){
 }
 
 void editorProcessKeypress(void) {
-	char c = keypress_read();
+	int c = keypress_read();
 	switch (c){
 		case CTRL_KEY('q'):
 			refresh_screen();
 			exit(0);
 			break;
 		case 'h':
+			editorMoveCursor(ARROW_LEFT);
+			break;
 		case 'j':
+			editorMoveCursor(ARROW_DOWN);
+			break;
 		case 'k':
+			editorMoveCursor(ARROW_UP);
+			break;
 		case 'l':
-			editorMoveCursor(c);
+			editorMoveCursor(ARROW_RIGHT);
 			break;
 	}
 }

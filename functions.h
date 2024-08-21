@@ -6,11 +6,20 @@
 #define VERSION "1.0"
 #define WELCOME_LEN 100
 
+enum ARROW_MAP{
+	UP_MAP = 'k',
+	DOWN_MAP = 'j',
+	LEFT_MAP = 'h',
+	RIGHT_MAP = 'l'
+};
+
 enum editor_keys{
-	ARROW_LEFT = 'h',
-	ARROW_RIGHT = 'l',
-	ARROW_UP = 'k',
-	ARROW_DOWN = 'j',
+	ARROW_LEFT = 1000,
+	ARROW_RIGHT,
+	ARROW_UP,
+	ARROW_DOWN,
+	PG_UP,
+	PG_DOWN
 };
 
 typedef struct buffer buffer;
