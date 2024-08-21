@@ -94,32 +94,48 @@ int keypress_read(void){
 			raise_error("read");
 	}
 
-	if (c == '\x1b'){
-		char seq[3];
-		if (read(STDIN_FILENO, &seq[0], 1) != 1)
-			return '\x1b';
-		if (read(STDIN_FILENO, &seq[1], 1) != 1)
-			return '\x1b';
 
-		if (seq[0] == '['){
-			switch (seq[1]){
-				case 'A':
-					return UP_MAP;
-				case 'B':
-					return DOWN_MAP;
-				case 'C':
-					return RIGHT_MAP;
-				case 'D':
-					return LEFT_MAP;
+	char seq[3];
+	switch (c){
+		case 'h':
+			return ARROW_LEFT;
+		case 'j':
+			return ARROW_DOWN;
+		case 'k':
+			return ARROW_UP;
+		case 'l':
+			return ARROW_RIGHT;
+		case '\x1b':
+			if (read(STDIN_FILENO, &seq[0], 1) != 1)
+				return '\x1b';
+			if (read(STDIN_FILENO, &seq[1], 1) != 1)
+				return '\x1b';
+
+			if (seq[0] == '['){
+				switch (seq[1]){
+					case 'A':
+						return ARROW_UP;
+					case 'B':
+						return ARROW_DOWN;
+					case 'C':
+						return ARROW_RIGHT;
+					case 'D':
+						return ARROW_LEFT;
+				}
+				if (read(STDIN_FILENO, &seq[2], 1) != 1)
+					return '\x1b';
+				if (seq[2] == '~'){
+					switch (seq[1]){
+						case '5':
+							break;
+						case '6':
+							break;
+					};
+				}
 			}
-		if (read(STDIN_FILENO, &seq[2], 1) != 1)
-			return '\x1b';
-		}
-		return '\x1b'; // Assuming everything else is an ESC char
-	}
-	else {
-		return c;
-	}
+			return '\x1b'; // Assuming everything else is an ESC char
+	};
+	return c;
 }
 
 /* Key press handling */
@@ -152,17 +168,11 @@ void editorProcessKeypress(void) {
 			refresh_screen();
 			exit(0);
 			break;
-		case 'h':
-			editorMoveCursor(ARROW_LEFT);
-			break;
-		case 'j':
-			editorMoveCursor(ARROW_DOWN);
-			break;
-		case 'k':
-			editorMoveCursor(ARROW_UP);
-			break;
-		case 'l':
-			editorMoveCursor(ARROW_RIGHT);
+		case ARROW_LEFT:
+		case ARROW_DOWN:
+		case ARROW_UP:
+		case ARROW_RIGHT:
+			editorMoveCursor(c);
 			break;
 	}
 }

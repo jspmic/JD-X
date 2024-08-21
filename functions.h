@@ -6,13 +6,6 @@
 #define VERSION "1.0"
 #define WELCOME_LEN 100
 
-enum ARROW_MAP{
-	UP_MAP = 'k',
-	DOWN_MAP = 'j',
-	LEFT_MAP = 'h',
-	RIGHT_MAP = 'l'
-};
-
 enum editor_keys{
 	ARROW_LEFT = 1000,
 	ARROW_RIGHT,
