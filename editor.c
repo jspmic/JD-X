@@ -192,7 +192,8 @@ void editorProcessKeypress(void) {
 	int times;
 	switch (c){
 		case CTRL_KEY('q'):
-			refresh_screen();
+			write(STDOUT_FILENO, "\x1b[2J", 4);
+			write(STDOUT_FILENO, "\x1b[H", 3);
 			exit(0);
 			break;
 		case ARROW_LEFT:
