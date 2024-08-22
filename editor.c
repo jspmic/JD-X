@@ -117,12 +117,20 @@ int keypress_read(void){
 						return '\x1b';
 					if (seq[2] == '~'){
 						switch (seq[1]){
+							case '1':
+								return HOME;
 							case '3':
 								return DELETE;
+							case '4':
+								return END;
 							case '5':
 								return PG_UP;
 							case '6':
 								return PG_DOWN;
+							case '7':
+								return HOME;
+							case '8':
+								return END;
 						};
 					}
 				}
@@ -136,8 +144,20 @@ int keypress_read(void){
 							return ARROW_RIGHT;
 						case 'D':
 							return ARROW_LEFT;
+						case 'H':
+							return HOME;
+						case 'F':
+							return END;
 					}
 				}
+			}
+			else if (seq[0] == 'O') {
+				switch (seq[1]){
+					case 'H':
+						return HOME;
+					case 'F':
+						return END;
+				};
 			}
 			return '\x1b'; // Assuming everything else is an ESC char
 	};
@@ -183,9 +203,16 @@ void editorProcessKeypress(void) {
 			break;
 		case PG_UP:
 		case PG_DOWN:
-			times = termConfig.rows;
+			times= termConfig.rows;
 			while (times--)
 				editorMoveCursor(c == PG_UP ? ARROW_UP : ARROW_DOWN);
+			break;
+		case HOME:
+		case END:
+			times = termConfig.cols;
+			while (times--)
+				editorMoveCursor(c == HOME ? ARROW_LEFT : ARROW_RIGHT);
+			break;
 	}
 }
 

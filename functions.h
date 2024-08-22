@@ -14,6 +14,8 @@ enum editor_keys{
 	DELETE,
 	PG_UP,
 	PG_DOWN,
+	HOME,
+	END
 };
 
 typedef struct buffer buffer;
