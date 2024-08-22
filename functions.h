@@ -13,7 +13,7 @@ enum editor_keys{
 	ARROW_DOWN,
 	DELETE,
 	PG_UP,
-	PG_DOWN
+	PG_DOWN,
 };
 
 typedef struct buffer buffer;
