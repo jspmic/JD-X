@@ -7,6 +7,6 @@ The purpose of its creation was to learn while implementing a project that is fu
 - Start by cloning this repo: `git clone https://github.com/jspmic/JD-X.git`
 
 - After cloning the repo you should be able to run:
- `make` and after `./a.o`
+ `make install` and after `./a.o`
 
 - If you want to delete the file(s) generated, run `make clean`

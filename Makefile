@@ -1,7 +1,7 @@
 SCR = editor.c
 OBJ = a.o
 CFLAGS = -Wall -Wextra -pedantic -lm
-BIN = editor
+BIN = install
 
 $(BIN): $(SCR)
 	$(CC) $(CFLAGS) $(SCR) -o $(OBJ)
