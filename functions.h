@@ -1,3 +1,23 @@
+#ifndef UTILS_H
+#define UTILS_H
+
+#define CTRL_KEY(x) (x & 0x1f)
+#define ABUF_INIT {NULL, 0}
+#define VERSION "1.0"
+#define WELCOME_LEN 100
+
+enum editor_keys{
+	ARROW_LEFT = 1000,
+	ARROW_RIGHT,
+	ARROW_UP,
+	ARROW_DOWN,
+	DELETE,
+	PG_UP,
+	PG_DOWN,
+	HOME,
+	END
+};
+
 typedef struct buffer buffer;
 struct buffer{
 	char *buf;
@@ -5,4 +25,4 @@ struct buffer{
 };
 
 void refresh_screen(void);
-/* void draw_rows(void); */
+#endif

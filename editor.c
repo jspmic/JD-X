@@ -8,11 +8,6 @@
 #include <termios.h> // For reading terminal attributes
 #include "functions.h"
 
-#define CTRL_KEY(x) (x & 0x1f)
-#define ABUF_INIT {NULL, 0}
-#define VERSION "1.0"
-#define WELCOME_LEN 100
-
 /* error handling */
 
 void raise_error(const char* error_str){
@@ -91,51 +86,133 @@ void enableRawMode(void) {
 	}
 }
 
-char keypress_read(void){
+int keypress_read(void){
 	char c;
-	int actual_character;
-	while ((actual_character = read(STDIN_FILENO, &c, 1)) != 1){
-		if (actual_character == -1 && errno != EAGAIN)
+	int nread;
+	while ((nread = read(STDIN_FILENO, &c, 1)) != 1){
+		if (nread == -1 && errno != EAGAIN)
 			raise_error("read");
 	}
+
+
+	char seq[3];
+	switch (c){
+		case 'h':
+			return ARROW_LEFT;
+		case 'j':
+			return ARROW_DOWN;
+		case 'k':
+			return ARROW_UP;
+		case 'l':
+			return ARROW_RIGHT;
+		case '\x1b':
+			if (read(STDIN_FILENO, &seq[0], 1) != 1)
+				return '\x1b';
+			if (read(STDIN_FILENO, &seq[1], 1) != 1)
+				return '\x1b';
+
+			if (seq[0] == '['){
+				if (seq[1] >= '0' && seq[1] <= '9') {
+					if (read(STDIN_FILENO, &seq[2], 1) != 1)
+						return '\x1b';
+					if (seq[2] == '~'){
+						switch (seq[1]){
+							case '1':
+								return HOME;
+							case '3':
+								return DELETE;
+							case '4':
+								return END;
+							case '5':
+								return PG_UP;
+							case '6':
+								return PG_DOWN;
+							case '7':
+								return HOME;
+							case '8':
+								return END;
+						};
+					}
+				}
+				else {
+					switch (seq[1]){
+						case 'A':
+							return ARROW_UP;
+						case 'B':
+							return ARROW_DOWN;
+						case 'C':
+							return ARROW_RIGHT;
+						case 'D':
+							return ARROW_LEFT;
+						case 'H':
+							return HOME;
+						case 'F':
+							return END;
+					}
+				}
+			}
+			else if (seq[0] == 'O') {
+				switch (seq[1]){
+					case 'H':
+						return HOME;
+					case 'F':
+						return END;
+				};
+			}
+			return '\x1b'; // Assuming everything else is an ESC char
+	};
 	return c;
 }
 
 /* Key press handling */
 
-void editorMoveCursor(char key){
+void editorMoveCursor(int key){
 	switch (key){
-		case 'h':
-			if (termConfig.cursor_x > 0)
+		case ARROW_LEFT:
+			if (termConfig.cursor_x != 0)
 				termConfig.cursor_x--;
 			break;
-		case 'j':
-			if (termConfig.cursor_y < termConfig.rows-1)
+		case ARROW_DOWN:
+			if (termConfig.cursor_y != termConfig.rows-1)
 				termConfig.cursor_y++;
 			break;
-		case 'k':
-			if (termConfig.cursor_y > 0)
+		case ARROW_UP:
+			if (termConfig.cursor_y != 0)
 				termConfig.cursor_y--;
 			break;
-		case 'l':
-			if (termConfig.cursor_x < termConfig.cols-1)
+		case ARROW_RIGHT:
+			if (termConfig.cursor_x != termConfig.cols-1)
 				termConfig.cursor_x++;
 			break;
 	}
 }
 
 void editorProcessKeypress(void) {
-	char c = keypress_read();
+	int c = keypress_read();
+	int times;
 	switch (c){
 		case CTRL_KEY('q'):
-			refresh_screen();
+			write(STDOUT_FILENO, "\x1b[2J", 4);
+			write(STDOUT_FILENO, "\x1b[H", 3);
 			exit(0);
 			break;
-		case 'h':
-		case 'j':
-		case 'k':
-		case 'l':
+		case ARROW_LEFT:
+		case ARROW_DOWN:
+		case ARROW_UP:
+		case ARROW_RIGHT:
 			editorMoveCursor(c);
+			break;
+		case PG_UP:
+		case PG_DOWN:
+			times= termConfig.rows;
+			while (times--)
+				editorMoveCursor(c == PG_UP ? ARROW_UP : ARROW_DOWN);
+			break;
+		case HOME:
+		case END:
+			times = termConfig.cols;
+			while (times--)
+				editorMoveCursor(c == HOME ? ARROW_LEFT : ARROW_RIGHT);
 			break;
 	}
 }
