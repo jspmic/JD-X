@@ -1,7 +1,7 @@
 # Description
 JD-X is a vim-like, lite and minimal editor.
 
-The purpose of its creation was to learn while implementing a project that is fun and at an intermediate-advanced level.
+The purpose of its creation was to learn slightly advanced i/o handling by implementing a project that is fun and at an intermediate-advanced level.
 
 # Installation
 - Start by cloning this repo: `git clone https://github.com/jspmic/JD-X.git`
